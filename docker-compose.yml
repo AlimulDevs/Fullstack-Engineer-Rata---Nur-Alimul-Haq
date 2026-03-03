@@ -1,0 +1,133 @@
+version: '3.9'
+
+services:
+  # ─────────────────────────────────────────────
+  # PostgreSQL – Auth Service DB
+  # ─────────────────────────────────────────────
+  postgres-auth:
+    image: postgres:15-alpine
+    container_name: healthcare_postgres_auth
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${AUTH_DB_USER:-auth_user}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:-auth_password}
+      POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    networks:
+      - healthcare_network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${AUTH_DB_USER:-auth_user}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────
+  # PostgreSQL – Schedule Service DB
+  # ─────────────────────────────────────────────
+  postgres-schedule:
+    image: postgres:15-alpine
+    container_name: healthcare_postgres_schedule
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${SCHEDULE_DB_USER:-schedule_user}
+      POSTGRES_PASSWORD: ${SCHEDULE_DB_PASSWORD:-schedule_password}
+      POSTGRES_DB: ${SCHEDULE_DB_NAME:-schedule_db}
+    ports:
+      - '5434:5432'
+    volumes:
+      - postgres_schedule_data:/var/lib/postgresql/data
+    networks:
+      - healthcare_network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${SCHEDULE_DB_USER:-schedule_user}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────
+  # Redis – Cache & Bull Queue
+  # ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: healthcare_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - healthcare_network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────
+  # Auth Service
+  # ─────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: healthcare_auth_service
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${AUTH_DB_USER:-auth_user}:${AUTH_DB_PASSWORD:-auth_password}@postgres-auth:5432/${AUTH_DB_NAME:-auth_db}
+      JWT_SECRET: ${JWT_SECRET:-super_secret_jwt_key_change_in_production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    networks:
+      - healthcare_network
+
+  # ─────────────────────────────────────────────
+  # Schedule Service
+  # ─────────────────────────────────────────────
+  schedule-service:
+    build:
+      context: ./schedule-service
+      dockerfile: Dockerfile
+    container_name: healthcare_schedule_service
+    restart: unless-stopped
+    ports:
+      - '3002:3002'
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: postgresql://${SCHEDULE_DB_USER:-schedule_user}:${SCHEDULE_DB_PASSWORD:-schedule_password}@postgres-schedule:5432/${SCHEDULE_DB_NAME:-schedule_db}
+      AUTH_SERVICE_URL: http://auth-service:3001/graphql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # Email (template – implement SMTP when ready)
+      MAIL_HOST: ${MAIL_HOST:-smtp.example.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USER: ${MAIL_USER:-no-reply@example.com}
+      MAIL_PASS: ${MAIL_PASS:-changeme}
+      MAIL_FROM: ${MAIL_FROM:-"Healthcare System <no-reply@example.com>"}
+    depends_on:
+      postgres-schedule:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - healthcare_network
+
+volumes:
+  postgres_auth_data:
+  postgres_schedule_data:
+  redis_data:
+
+networks:
+  healthcare_network:
+    driver: bridge
