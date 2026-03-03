@@ -1,0 +1,247 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""Input for creating a new customer"""
+input CreateCustomerInput {
+  """Customer email address (must be unique)"""
+  email: String!
+
+  """Customer full name"""
+  name: String!
+}
+
+"""Input for creating a new doctor"""
+input CreateDoctorInput {
+  """Doctor full name"""
+  name: String!
+}
+
+"""Input for creating a new schedule"""
+input CreateScheduleInput {
+  """Customer UUID"""
+  customerId: ID!
+
+  """Doctor UUID"""
+  doctorId: ID!
+
+  """Purpose / objective of the consultation"""
+  objective: String!
+
+  """
+  ISO-8601 datetime for the scheduled consultation (e.g. 2024-06-15T09:00:00Z)
+  """
+  scheduledAt: String!
+}
+
+"""Customer entity"""
+type CustomerModel {
+  """Record creation timestamp"""
+  createdAt: DateTime!
+
+  """Customer email address"""
+  email: String!
+
+  """Unique customer identifier (UUID)"""
+  id: ID!
+
+  """Customer full name"""
+  name: String!
+
+  """Record last update timestamp"""
+  updatedAt: DateTime!
+}
+
+"""Paginated list of customers"""
+type CustomerPaginatedResult {
+  """List of customers for the current page"""
+  data: [CustomerModel!]!
+
+  """Number of items per page"""
+  limit: Int!
+
+  """Current page number"""
+  page: Int!
+
+  """Total number of customers"""
+  total: Int!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+"""Doctor entity"""
+type DoctorModel {
+  """Record creation timestamp"""
+  createdAt: DateTime!
+
+  """Unique doctor identifier (UUID)"""
+  id: ID!
+
+  """Doctor full name"""
+  name: String!
+
+  """Record last update timestamp"""
+  updatedAt: DateTime!
+}
+
+"""Paginated list of doctors"""
+type DoctorPaginatedResult {
+  """List of doctors for the current page"""
+  data: [DoctorModel!]!
+
+  """Number of items per page"""
+  limit: Int!
+
+  """Current page number"""
+  page: Int!
+
+  """Total number of doctors"""
+  total: Int!
+}
+
+type Mutation {
+  """Create a new customer"""
+  createCustomer(input: CreateCustomerInput!): CustomerModel!
+
+  """Create a new doctor"""
+  createDoctor(input: CreateDoctorInput!): DoctorModel!
+
+  """Create a new consultation schedule"""
+  createSchedule(input: CreateScheduleInput!): ScheduleModel!
+
+  """Delete a customer by ID"""
+  deleteCustomer(id: ID!): CustomerModel!
+
+  """Delete a doctor by ID"""
+  deleteDoctor(id: ID!): DoctorModel!
+
+  """Delete a schedule by ID"""
+  deleteSchedule(id: ID!): ScheduleModel!
+
+  """Update an existing customer"""
+  updateCustomer(input: UpdateCustomerInput!): CustomerModel!
+
+  """Update an existing doctor"""
+  updateDoctor(input: UpdateDoctorInput!): DoctorModel!
+}
+
+type Query {
+  """Get a customer by ID"""
+  customer(id: ID!): CustomerModel!
+
+  """List all customers with pagination"""
+  customers(
+    """Items per page (max 100)"""
+    limit: Int = 10
+
+    """Page number (1-based)"""
+    page: Int = 1
+  ): CustomerPaginatedResult!
+
+  """Get a doctor by ID"""
+  doctor(id: ID!): DoctorModel!
+
+  """List all doctors with pagination"""
+  doctors(
+    """Items per page (max 100)"""
+    limit: Int = 10
+
+    """Page number (1-based)"""
+    page: Int = 1
+  ): DoctorPaginatedResult!
+
+  """Get a schedule by ID"""
+  schedule(id: ID!): ScheduleModel!
+
+  """
+  List schedules with optional filters (customerId, doctorId, date range) and pagination
+  """
+  schedules(
+    """Filter by customer ID"""
+    customerId: ID
+
+    """Filter by doctor ID"""
+    doctorId: ID
+
+    """Filter schedules from this date (ISO-8601)"""
+    fromDate: String
+
+    """Items per page (max 100)"""
+    limit: Int = 10
+
+    """Page number (1-based)"""
+    page: Int = 1
+
+    """Filter schedules until this date (ISO-8601)"""
+    toDate: String
+  ): SchedulePaginatedResult!
+}
+
+"""Schedule (consultation appointment) entity"""
+type ScheduleModel {
+  """Record creation timestamp"""
+  createdAt: DateTime!
+
+  """Customer details"""
+  customer: CustomerModel
+
+  """Customer ID"""
+  customerId: ID!
+
+  """Doctor details"""
+  doctor: DoctorModel
+
+  """Doctor ID"""
+  doctorId: ID!
+
+  """Unique schedule identifier (UUID)"""
+  id: ID!
+
+  """Purpose / objective of the consultation"""
+  objective: String!
+
+  """Scheduled consultation date and time"""
+  scheduledAt: DateTime!
+
+  """Record last update timestamp"""
+  updatedAt: DateTime!
+}
+
+"""Paginated list of schedules"""
+type SchedulePaginatedResult {
+  """List of schedules for the current page"""
+  data: [ScheduleModel!]!
+
+  """Number of items per page"""
+  limit: Int!
+
+  """Current page number"""
+  page: Int!
+
+  """Total number of matching schedules"""
+  total: Int!
+}
+
+"""Input for updating an existing customer"""
+input UpdateCustomerInput {
+  """Customer email address (must be unique)"""
+  email: String
+
+  """Customer ID to update"""
+  id: ID!
+
+  """Customer full name"""
+  name: String
+}
+
+"""Input for updating an existing doctor"""
+input UpdateDoctorInput {
+  """Doctor ID to update"""
+  id: ID!
+
+  """Doctor full name"""
+  name: String
+}
