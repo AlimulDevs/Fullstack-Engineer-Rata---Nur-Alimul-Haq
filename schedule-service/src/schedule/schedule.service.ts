@@ -71,6 +71,7 @@ export class ScheduleService {
       })
       .catch(() => {
         // Notification errors are non-blocking
+        console.error('Failed to send schedule creation notification');
       });
 
     return schedule;
@@ -137,6 +138,7 @@ export class ScheduleService {
         })
         .catch(() => {
           // Notification errors are non-blocking
+          console.error('Failed to send schedule deletion notification');
         });
     }
 

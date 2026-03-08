@@ -329,6 +329,153 @@ notification/
 
 ---
 
+## Tools & Libraries yang Digunakan
+
+### Infrastruktur & DevOps
+
+| Tool | Versi | Kegunaan |
+|---|---|---|
+| **Docker** | - | Containerisasi setiap service agar environment konsisten di mana pun dijalankan. Setiap service punya `Dockerfile`-nya sendiri. |
+| **Docker Compose** | v3.9 | Orkestrasi semua container sekaligus (2 PostgreSQL, 1 Redis, 2 service) dengan satu perintah `docker-compose up`. Mengatur jaringan antar container dan urutan startup via `depends_on`. |
+| **PostgreSQL** | 15-alpine | Database relasional utama. Dua instance terpisah: satu untuk auth-service (port 5433) dan satu untuk schedule-service (port 5434) agar data benar-benar terisolasi antar service. |
+| **Redis** | 7-alpine | Dual-purpose: sebagai **cache** (menyimpan hasil query yang sering diakses) dan sebagai **message broker** untuk Bull queue (antrian job notifikasi email). |
+
+---
+
+### Core Framework & Bahasa
+
+| Library | Versi | Kegunaan |
+|---|---|---|
+| **TypeScript** | ^5.3.3 | Bahasa pemrograman utama. Menambahkan static typing ke JavaScript untuk mengurangi bug runtime dan meningkatkan DX (developer experience). |
+| **NestJS** (`@nestjs/core`, `@nestjs/common`) | ^10.3.0 | Framework backend Node.js berbasis TypeScript. Mengadopsi pola Dependency Injection, Decorator, dan Module yang terstruktur. Menjadi kerangka utama kedua service. |
+| **`@nestjs/platform-express`** | ^10.3.0 | Adapter HTTP untuk NestJS menggunakan Express sebagai underlying HTTP server. |
+| **`reflect-metadata`** | ^0.2.1 | Polyfill untuk Metadata Reflection API — dibutuhkan agar dekorator NestJS dan TypeScript bisa bekerja. |
+| **`rxjs`** | ^7.8.1 | Library reactive programming — digunakan secara internal oleh NestJS untuk menangani aliran data asinkron. |
+
+---
+
+### GraphQL
+
+| Library | Versi | Kegunaan |
+|---|---|---|
+| **`graphql`** | ^16.8.1 | Library inti GraphQL untuk JavaScript — parser, validator, dan executor query. |
+| **`@nestjs/graphql`** | ^12.2.0 | Integrasi NestJS dengan GraphQL. Memungkinkan pendekatan **code-first**: schema GraphQL di-generate otomatis dari class TypeScript menggunakan dekorator `@ObjectType`, `@Field`, `@Query`, `@Mutation`. |
+| **`@apollo/server`** | ^4.10.0 | Apollo Server — server GraphQL yang menangani HTTP request dan eksekusi query/mutation. |
+| **`@nestjs/apollo`** | ^12.1.0 | Driver adapter yang menghubungkan `@nestjs/graphql` dengan Apollo Server. |
+| **`graphql-request`** | ^6.1.0 | Client HTTP ringan khusus untuk GraphQL. Digunakan di `auth-client.service.ts` (schedule-service) untuk memanggil endpoint GraphQL auth-service saat validasi token. |
+
+---
+
+### Database & ORM
+
+| Library | Versi | Kegunaan |
+|---|---|---|
+| **Prisma** (`prisma`) | 6.19.2 | ORM (Object-Relational Mapper) untuk TypeScript. CLI Prisma digunakan untuk membuat dan menjalankan migrasi database (`prisma migrate`), generate Prisma Client, dan membuka Prisma Studio. |
+| **`@prisma/client`** | 6.19.2 | Client Prisma yang di-generate — menyediakan fungsi query type-safe ke database (misalnya `prisma.user.findUnique()`). File ini di-generate dari `schema.prisma`. |
+
+---
+
+### Autentikasi & Keamanan
+
+| Library | Versi | Kegunaan |
+|---|---|---|
+| **`@nestjs/jwt`** | ^10.2.0 | Modul NestJS untuk membuat dan memverifikasi **JSON Web Token (JWT)**. Digunakan di auth-service untuk sign token saat login dan verify token saat validasi. |
+| **`bcrypt`** | ^5.1.1 | Library untuk **hashing password** menggunakan algoritma bcrypt. Password tidak disimpan plain-text di database — hanya hash-nya yang disimpan dan dibandingkan saat login. |
+| **`@types/bcrypt`** | ^5.0.2 | TypeScript type definitions untuk bcrypt. |
+
+---
+
+### Caching
+
+| Library | Versi | Kegunaan |
+|---|---|---|
+| **`@nestjs/cache-manager`** | ^2.2.0 | Modul caching untuk NestJS. Diatur sebagai global module di schedule-service dengan TTL 60 detik. |
+| **`cache-manager`** | ^5.3.2 | Core library cache-manager — abstraksi di atas berbagai cache store. |
+| **`cache-manager-redis-yet`** | ^4.1.2 | Adapter Redis untuk cache-manager. Menghubungkan `@nestjs/cache-manager` dengan Redis sebagai backing store. |
+
+---
+
+### Queue & Background Job
+
+| Library | Versi | Kegunaan |
+|---|---|---|
+| **`bull`** | ^4.12.2 | Library job queue berbasis Redis yang powerful. Digunakan untuk mengirim job notifikasi email secara **asinkron** — schedule dibuat seketika, email dikirim di background. Mendukung retry otomatis dan delay. |
+| **`@nestjs/bull`** | ^10.1.1 | Integrasi NestJS dengan Bull. Menyediakan dekorator `@Processor`, `@Process`, dan `BullModule` untuk mendefinisikan queue dan worker secara deklaratif. |
+| **`@types/bull`** | ^4.10.0 | TypeScript type definitions untuk Bull. |
+
+---
+
+### Notifikasi Email
+
+| Library | Versi | Kegunaan |
+|---|---|---|
+| **`nodemailer`** | ^8.0.1 | Library pengiriman email untuk Node.js. Digunakan di `notification.processor.ts` untuk mengirim email HTML notifikasi ke pasien setelah jadwal dibuat atau dihapus. Terhubung ke SMTP server yang dikonfigurasi via environment variable. |
+| **`@types/nodemailer`** | ^6.4.14 | TypeScript type definitions untuk Nodemailer. |
+
+---
+
+### Validasi & Transformasi Data
+
+| Library | Versi | Kegunaan |
+|---|---|---|
+| **`class-validator`** | ^0.14.1 | Library dekorator untuk validasi data pada DTO. Contoh: `@IsEmail()`, `@MinLength(6)`, `@IsNotEmpty()`. Memastikan data yang masuk dari client sesuai format sebelum diproses. |
+| **`class-transformer`** | ^0.5.1 | Library untuk transformasi plain object ke class instance (dan sebaliknya). Dibutuhkan bersama `class-validator` agar validasi berjalan pada konteks NestJS. |
+
+---
+
+### Konfigurasi
+
+| Library | Versi | Kegunaan |
+|---|---|---|
+| **`@nestjs/config`** | ^4.0.3 | Modul NestJS untuk mengelola konfigurasi aplikasi. Memuat variabel environment dari file `.env` dan membuatnya accessible di seluruh aplikasi via `ConfigService`. |
+| **`dotenv`** | ^17.3.1 | Memuat variabel dari file `.env` ke `process.env`. Digunakan langsung di file `prisma.config.ts` untuk konfigurasi koneksi database Prisma di luar konteks NestJS. |
+
+---
+
+### Testing
+
+| Library | Versi | Kegunaan |
+|---|---|---|
+| **Jest** | ^29.7.0 | Test runner utama. Menjalankan semua file `*.spec.ts` secara otomatis. Mendukung mocking, assertion, dan code coverage. |
+| **`@nestjs/testing`** | ^10.3.0 | Modul testing NestJS. Menyediakan `Test.createTestingModule()` untuk membuat module NestJS terisolasi dalam test — tanpa perlu koneksi database nyata (cukup mock). |
+| **`ts-jest`** | ^29.1.2 | Preprocessor Jest untuk TypeScript. Mengompilasi file `.ts` secara transparan sehingga Jest bisa menjalankan test TypeScript langsung tanpa build step terpisah. |
+| **`@types/jest`** | ^29.5.11 | TypeScript type definitions untuk Jest (`describe`, `it`, `expect`, `jest.fn()`, dll.). |
+
+---
+
+### Development Tools
+
+| Tool | Versi | Kegunaan |
+|---|---|---|
+| **NestJS CLI** (`@nestjs/cli`) | ^11.0.16 | CLI untuk scaffold modul, service, resolver, dll. (`nest g module`, `nest g service`). Juga digunakan untuk build (`nest build`) dan dev watch mode (`nest start --watch`). |
+| **`@nestjs/schematics`** | ^10.1.0 | Koleksi schematic yang dibutuhkan NestJS CLI untuk generate kode. |
+| **ESLint** | ^8.56.0 | Linter untuk TypeScript — mendeteksi masalah kode dan memaksakan style guide. Dikonfigurasi dengan plugin `@typescript-eslint`. |
+| **`@typescript-eslint/parser`** | ^8.56.1 | Parser ESLint untuk memahami sintaks TypeScript. |
+| **`@typescript-eslint/eslint-plugin`** | ^8.56.1 | Koleksi rules ESLint khusus TypeScript. |
+| **`ts-node`** | ^10.9.2 | Menjalankan file TypeScript langsung tanpa kompilasi terlebih dahulu. Digunakan untuk script seperti seed database. |
+
+---
+
+### Ringkasan Stack
+
+```
+Bahasa       : TypeScript 5
+Framework    : NestJS 10
+API          : GraphQL (code-first, Apollo Server 4)
+ORM          : Prisma 6
+Database     : PostgreSQL 15 (x2, isolated per service)
+Cache        : Redis 7 + cache-manager
+Queue        : Bull 4 (Redis-backed)
+Auth         : JWT (@nestjs/jwt) + bcrypt
+Email        : Nodemailer
+Validasi     : class-validator + class-transformer
+Config       : @nestjs/config + dotenv
+Testing      : Jest 29 + @nestjs/testing + ts-jest
+Containerisasi: Docker + Docker Compose
+```
+
+---
+
 ## Alur Kerja Keseluruhan
 
 ```
