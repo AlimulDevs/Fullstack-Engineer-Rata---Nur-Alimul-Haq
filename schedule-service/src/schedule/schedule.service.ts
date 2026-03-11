@@ -60,7 +60,7 @@ export class ScheduleService {
       include: { customer: true, doctor: true },
     });
 
-    // 4. Queue email notification (fire-and-forget)
+  
     this.notificationService
       .sendScheduleCreatedNotification({
         customerEmail: customer.email,
@@ -70,7 +70,7 @@ export class ScheduleService {
         scheduledAt: schedule.scheduledAt,
       })
       .catch(() => {
-        // Notification errors are non-blocking
+     
         console.error('Failed to send schedule creation notification');
       });
 
@@ -100,6 +100,7 @@ export class ScheduleService {
         skip,
         take: limit,
         orderBy: { scheduledAt: 'asc' },
+        
         include: { customer: true, doctor: true },
       }),
       this.prisma.schedule.count({ where }),
@@ -126,7 +127,7 @@ export class ScheduleService {
 
     await this.prisma.schedule.delete({ where: { id } });
 
-    // Queue email notification (fire-and-forget)
+  
     if (schedule.customer) {
       this.notificationService
         .sendScheduleDeletedNotification({
@@ -137,7 +138,7 @@ export class ScheduleService {
           scheduledAt: schedule.scheduledAt,
         })
         .catch(() => {
-          // Notification errors are non-blocking
+
           console.error('Failed to send schedule deletion notification');
         });
     }

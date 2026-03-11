@@ -66,6 +66,43 @@ describe('CustomerService', () => {
     });
   });
 
+  // ── update ───────────────────────────────────────────────────────────────
+  describe('update', () => {
+    it('should update a customer successfully', async () => {
+      const updated = { ...mockCustomer, name: 'Budi Updated' };
+      mockPrisma.customer.findUnique.mockResolvedValue(mockCustomer);
+      mockPrisma.customer.findFirst.mockResolvedValue(null);
+      mockPrisma.customer.update.mockResolvedValue(updated);
+
+      const result = await service.update({
+        id: 'cust-uuid-001',
+        name: 'Budi Updated',
+        email: 'new@example.com',
+      });
+
+      expect(result.name).toBe('Budi Updated');
+      expect(mockPrisma.customer.update).toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException if new email is already used by another customer', async () => {
+      const otherCustomer = { ...mockCustomer, id: 'other-id' };
+      mockPrisma.customer.findUnique.mockResolvedValue(mockCustomer);
+      mockPrisma.customer.findFirst.mockResolvedValue(otherCustomer);
+
+      await expect(
+        service.update({ id: 'cust-uuid-001', email: 'taken@example.com' }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should throw NotFoundException if customer does not exist', async () => {
+      mockPrisma.customer.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.update({ id: 'unknown-id', name: 'X' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
   // ── findAll ──────────────────────────────────────────────────────────────
   describe('findAll', () => {
     it('should return paginated customers', async () => {

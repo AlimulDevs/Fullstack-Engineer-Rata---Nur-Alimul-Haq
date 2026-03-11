@@ -110,6 +110,57 @@ describe('ScheduleService', () => {
     });
   });
 
+  // ── findAll ───────────────────────────────────────────────────────────────
+  describe('findAll', () => {
+    it('should return paginated schedules with no filters', async () => {
+      mockPrisma.schedule.findMany.mockResolvedValue([mockSchedule]);
+      mockPrisma.schedule.count.mockResolvedValue(1);
+
+      const result = await service.findAll({ page: 1, limit: 10 });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(result.page).toBe(1);
+    });
+
+    it('should apply doctorId filter', async () => {
+      mockPrisma.schedule.findMany.mockResolvedValue([mockSchedule]);
+      mockPrisma.schedule.count.mockResolvedValue(1);
+
+      await service.findAll({ page: 1, limit: 10, doctorId: 'doc-001' });
+
+      const findManyCall = mockPrisma.schedule.findMany.mock.calls[0][0];
+      expect(findManyCall.where).toMatchObject({ doctorId: 'doc-001' });
+    });
+
+    it('should apply date range filter', async () => {
+      mockPrisma.schedule.findMany.mockResolvedValue([mockSchedule]);
+      mockPrisma.schedule.count.mockResolvedValue(1);
+
+      await service.findAll({
+        page: 1,
+        limit: 10,
+        fromDate: '2024-06-01T00:00:00Z',
+        toDate: '2024-06-30T23:59:59Z',
+      });
+
+      const findManyCall = mockPrisma.schedule.findMany.mock.calls[0][0];
+      expect(findManyCall.where.scheduledAt).toBeDefined();
+      expect(findManyCall.where.scheduledAt.gte).toBeInstanceOf(Date);
+      expect(findManyCall.where.scheduledAt.lte).toBeInstanceOf(Date);
+    });
+
+    it('should use default page=1 limit=10 when not provided', async () => {
+      mockPrisma.schedule.findMany.mockResolvedValue([]);
+      mockPrisma.schedule.count.mockResolvedValue(0);
+
+      const result = await service.findAll({});
+
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(10);
+    });
+  });
+
   // ── findOne ──────────────────────────────────────────────────────────────
   describe('findOne', () => {
     it('should return a schedule by ID', async () => {

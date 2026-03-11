@@ -48,6 +48,31 @@ describe('DoctorService', () => {
     });
   });
 
+  // ── update ───────────────────────────────────────────────────────────────
+  describe('update', () => {
+    it('should update a doctor successfully', async () => {
+      const updated = { ...mockDoctor, name: 'Dr. Updated' };
+      mockPrisma.doctor.findUnique.mockResolvedValue(mockDoctor);
+      mockPrisma.doctor.update.mockResolvedValue(updated);
+
+      const result = await service.update({ id: 'doc-uuid-001', name: 'Dr. Updated' });
+
+      expect(result.name).toBe('Dr. Updated');
+      expect(mockPrisma.doctor.update).toHaveBeenCalledWith({
+        where: { id: 'doc-uuid-001' },
+        data: { name: 'Dr. Updated' },
+      });
+    });
+
+    it('should throw NotFoundException if doctor does not exist', async () => {
+      mockPrisma.doctor.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.update({ id: 'unknown-id', name: 'X' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
   // ── findAll ──────────────────────────────────────────────────────────────
   describe('findAll', () => {
     it('should return paginated doctors', async () => {
